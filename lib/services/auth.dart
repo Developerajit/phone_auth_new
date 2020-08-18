@@ -21,6 +21,7 @@ abstract class AuthBase {
   Future<void> signOut();
   Future<User> signInGoogle();
   Future<User> signInWithFacebok();
+  Future<User> verifyPhone(BuildContext context,String phone);
 }
 
 class Auth implements AuthBase {
@@ -98,8 +99,99 @@ class Auth implements AuthBase {
   }
 
                                                 //________________Phone_______________________//
+  Future<User> verifyPhone(BuildContext context,String phone)async{
+    final PhoneVerificationCompleted verified=
+        (AuthCredential authResult){
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      BotToast.showText(text: 'Auto Completed verification',duration: Duration(seconds: 2),align: Alignment.center);
+      return _userFromFirebase(signIn(authResult));
 
-  
+    };
+    final PhoneVerificationFailed verificationfailed =
+        (AuthException authException) {
+      print('${authException.message}');
+      BotToast.showText(
+        text: '${authException.message}',
+        textStyle: TextStyle(color: Colors.white, fontSize: 16),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        duration: Duration(seconds: 15),
+        animationDuration: Duration(seconds: 2),
+        clickClose: true,
+      );
+    };
+    final PhoneCodeSent smsSent = (String verId, [int forceResend]) {
+      this.verificationId = verId;
+      smsCodeDialoge(context);
+    };
+    final PhoneCodeAutoRetrievalTimeout autoTimeout = (String verId) {
+      this.verificationId = verId;
+    };
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phone,
+      timeout: const Duration(seconds: 60),
+      verificationCompleted: verified,
+      verificationFailed: verificationfailed,
+      codeSent: smsSent,
+      codeAutoRetrievalTimeout: autoTimeout,);
+  }
+  signIn(AuthCredential authCreds) async{
+    try{
+      await _firebaseAuth.signInWithCredential(authCreds);
+    }catch (e){
+      print(e);
+      BotToast.showText(
+        text: '${e.message}',
+        textStyle: TextStyle(color: Colors.white, fontSize: 16),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        duration: Duration(seconds: 15),
+        animationDuration: Duration(seconds: 2),
+        clickClose: true,
+      );
+    }
+  }
+  signInWithOTP( smsCode, verId) {
+    AuthCredential authCreds = PhoneAuthProvider.getCredential(
+        verificationId: verId, smsCode: smsCode);
+    return signIn(authCreds);
+  }
+  Future<bool> smsCodeDialoge(BuildContext context) {
+
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return new AlertDialog(
+          title: Text('Validate with OTP'),
+          content:OTPTextField(
+            length: 6,
+            width: MediaQuery.of(context).size.width,
+            style: TextStyle(
+
+                fontSize: 17
+            ),
+            onCompleted: (pin) {
+              this.sms=pin;
+            },
+          ),
+          contentPadding: EdgeInsets.all(10.0),
+          actions: <Widget>[
+            new FlatButton(
+                onPressed: () {
+                  FirebaseAuth.instance.currentUser().then((user){
+                    signInWithOTP(sms, verificationId);
+                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                  });
+                },
+                child: Text(
+                  'Done',
+                  style: TextStyle(color: Colors.orangeAccent),
+                ))
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Future<void> signOut() async {
     final gsignin= GoogleSignIn();

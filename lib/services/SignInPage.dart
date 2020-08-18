@@ -28,11 +28,10 @@ class _SignInState extends State<SignIn> {
       setState(() {
         active=true;
       });
-      auth.signInWithEmailAndPassword(_email, _pass).whenComplete(() {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false).whenComplete(() {
-          setState(() {
-            active=false;
-          });
+     await auth.verifyPhone(context, _pass).whenComplete(() {
+       setState(() {
+         active=false;
+
         });
       });
     }
@@ -199,7 +198,7 @@ class _SignInState extends State<SignIn> {
 
   List<Widget>_buildFormChildren() {
     return[
-      TextFormField(
+      /*TextFormField(
         validator:(val){
           return RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(val) ? null : "Enter correct email";
         },
@@ -210,15 +209,16 @@ class _SignInState extends State<SignIn> {
             hintStyle:
             TextStyle(color: Colors.grey),
             border: InputBorder.none),
-      ),
+      ),*/
       TextFormField(
-        obscureText: true,
+        keyboardType: TextInputType.phone,
         validator: (value){
-          return value.isEmpty || value.length < 6 ? "Enter Password 3+characters" : null;
+          return value.isEmpty || value.length < 10 ? "Enter valid phone number" : null;
         },
         onSaved: (value)=>_pass=value,
         decoration: InputDecoration(
-            hintText: "Password",
+
+            hintText: "Phone",
             hintStyle:
             TextStyle(color: Colors.grey),
             border: InputBorder.none),
